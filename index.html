@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hướng dẫn vẽ Hình chiếu Kỹ thuật - Công nghệ 8</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D View -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        .technical-font {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Cad/Drawing specific styles */
+        .drawing-canvas {
+            background-color: #ffffff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        .dim-line {
+            stroke: #2563eb;
+            stroke-width: 1;
+            marker-start: url(#arrow);
+            marker-end: url(#arrow);
+        }
+
+        .object-line {
+            stroke: #0f172a;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+        }
+
+        .hidden-line {
+            stroke: #dc2626;
+            stroke-width: 1.8;
+            stroke-dasharray: 6,4;
+            fill: none;
+        }
+
+        .center-line {
+            stroke: #16a34a;
+            stroke-width: 1;
+            stroke-dasharray: 12,3,3,3;
+            fill: none;
+        }
+
+        .guide-line {
+            stroke: #cbd5e1;
+            stroke-width: 1;
+            stroke-dasharray: 2,2;
+        }
+
+        /* Title block borders */
+        .tb-border {
+            border: 2px solid #0f172a;
+        }
+        .tb-cell {
+            border: 1px solid #0f172a;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-600 rounded-lg text-white">
+                    <i data-lucide="layers" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Học Vẽ Hình Chiếu Kỹ Thuật - Công Nghệ 8</h1>
+                    <p class="text-xs text-slate-400">Trường THCS Nguyễn Hữu Thọ - Bài tập 01.01</p>
+                </div>
+            </div>
+
+            <!-- Model Switcher Buttons -->
+            <div class="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+                <button id="btn-con-truot" onclick="switchModel('con-truot')" 
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white shadow-sm">
+                    <i data-lucide="box" class="w-4 h-4"></i>
+                    1. CON TRƯỢT
+                </button>
+                <button id="btn-gia-chu-l" onclick="switchModel('gia-chu-l')" 
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white transition-all">
+                    <i data-lucide="corner-down-right" class="w-4 h-4"></i>
+                    2. GIÁ CHỮ L
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Interactive Controls & 3D Model (4 cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- 3D Viewport Card -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2 font-bold text-slate-800 text-sm">
+                        <i data-lucide="3d-cube" class="w-4 h-4 text-blue-600"></i>
+                        Mô Hình 3D Tương Tác
+                    </div>
+                    <span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">Xoay/Zung chuột</span>
+                </div>
+                
+                <!-- Canvas 3D -->
+                <div id="threejs-container" class="w-full h-64 bg-slate-900 rounded-xl overflow-hidden relative border border-slate-800 cursor-grab active:cursor-grabbing">
+                    <div class="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded text-[10px] text-slate-300 pointer-events-none">
+                        Dùng chuột trái để xoay, lăn chuột để phóng to/thu nhỏ
+                    </div>
+                </div>
+
+                <!-- 3D Controls / Preset Views -->
+                <div class="grid grid-cols-4 gap-2 mt-3">
+                    <button onclick="resetCamera('iso')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center transition">Đẳng Isometric</button>
+                    <button onclick="resetCamera('front')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center transition">H.C Đứng</button>
+                    <button onclick="resetCamera('top')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center transition">H.C Bằng</button>
+                    <button onclick="resetCamera('side')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg text-center transition">H.C Cạnh</button>
+                </div>
+            </div>
+
+            <!-- Educational Steps Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                    <h2 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-emerald-600"></i>
+                        Các Bước Vẽ Bản Vẽ Kỹ Thuật
+                    </h2>
+                </div>
+
+                <!-- Step Navigation -->
+                <div class="space-y-3 flex-1" id="step-instructions">
+                    <!-- Dynamic insert -->
+                </div>
+
+                <!-- Step Controls -->
+                <div class="flex items-center justify-between pt-4 mt-2 border-t border-slate-100">
+                    <button id="btn-prev-step" onclick="changeStep(-1)" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                        <i data-lucide="chevron-left" class="w-3.5 h-3.5 inline"></i> Bước trước
+                    </button>
+                    <span id="step-indicator" class="text-xs font-bold text-blue-600">Bước 1 / 4</span>
+                    <button id="btn-next-step" onclick="changeStep(1)" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700">
+                        Bước tiếp <i data-lucide="chevron-right" class="w-3.5 h-3.5 inline"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: 2D Drawing Sheet A4 Layout (8 cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+            
+            <!-- Drawing Sheet Paper Container -->
+            <div class="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-slate-200 flex flex-col items-center overflow-x-auto">
+                
+                <!-- Legend / Status bar -->
+                <div class="w-full flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-slate-100 text-xs text-slate-500 gap-2">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 bg-slate-900 inline-block"></span> Nét thấy (Nét liền đậm)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 border-b border-dashed border-red-600 inline-block"></span> Nét ẩn (Nét đứt)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 border-b border-blue-600 inline-block"></span> Đường gióng / Kích thước</span>
+                    </div>
+                    <div class="font-medium text-slate-700" id="drawing-title-display">
+                        BẢN VẼ A4 NGANG: CON TRƯỢT
+                    </div>
+                </div>
+
+                <!-- SVG Canvas Sheet Frame (A4 Aspect Ratio approx) -->
+                <div class="w-full max-w-[760px] bg-white border-2 border-slate-900 p-2 sm:p-4 shadow-inner relative">
+                    
+                    <svg id="drawing-svg" viewBox="0 0 740 500" class="w-full h-auto bg-white font-mono text-xs">
+                        <!-- Arrowhead Definition -->
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 2 L 10 5 L 0 8 z" fill="#2563eb" />
+                            </marker>
+                            <marker id="arrow-black" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                <path d="M 0 2 L 10 5 L 0 8 z" fill="#0f172a" />
+                            </marker>
+                        </defs>
+
+                        <!-- Dynamic Content Inserted by JS -->
+                        <g id="svg-views-layer"></g>
+
+                    </svg>
+
+                    <!-- Khung Tên (Title Block) Standard Format -->
+                    <div class="mt-2 w-full max-w-[740px] ml-auto border-2 border-slate-900 text-[11px] font-sans leading-tight bg-white">
+                        <div class="grid grid-cols-12 divide-x-2 divide-slate-900">
+                            <!-- Left Info Block -->
+                            <div class="col-span-7 grid grid-rows-3 divide-y divide-slate-900">
+                                <div class="grid grid-cols-12 divide-x divide-slate-900">
+                                    <div class="col-span-3 p-1 font-medium text-center bg-slate-50 flex items-center justify-center">Người vẽ</div>
+                                    <div class="col-span-6 p-1 pl-2 flex items-center font-semibold" id="tb-nguoi-ve">Đỗ N.Q.Anh</div>
+                                    <div class="col-span-3 p-1 text-center flex items-center justify-center" id="tb-ngay-ve">05/10</div>
+                                </div>
+                                <div class="grid grid-cols-12 divide-x divide-slate-900">
+                                    <div class="col-span-3 p-1 font-medium text-center bg-slate-50 flex items-center justify-center">Kiểm tra</div>
+                                    <div class="col-span-9 p-1 pl-2 flex items-center" id="tb-kiem-tra"></div>
+                                </div>
+                                <div class="p-1 px-2 flex flex-col justify-center">
+                                    <div class="font-semibold text-slate-800" id="tb-truong">Trường THCS Nguyễn Hữu Thọ</div>
+                                    <div class="text-[10px] text-slate-600">Lớp: <span id="tb-lop">8</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Right Info Block -->
+                            <div class="col-span-5 flex flex-col justify-between divide-y-2 divide-slate-900">
+                                <div class="p-2 flex-1 flex items-center justify-center bg-slate-50">
+                                    <span class="text-base font-black tracking-wider uppercase text-slate-900 text-center" id="tb-ten-vat-the">CON TRƯỢT</span>
+                                </div>
+                                <div class="grid grid-cols-2 divide-x divide-slate-900">
+                                    <div class="p-1 pl-2 flex items-center justify-between">
+                                        <span class="text-slate-500 text-[10px]">Vật liệu:</span>
+                                        <span class="font-semibold" id="tb-vat-lieu">Thép</span>
+                                    </div>
+                                    <div class="p-1 px-2 flex flex-col justify-center text-right">
+                                        <div>Tỉ lệ: <span class="font-semibold" id="tb-ti-le">1:1</span></div>
+                                        <div class="text-[10px] text-slate-500">Bài số: <span id="tb-bai-so">01.01</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Technical Specification Details Footer -->
+                <div class="w-full mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-500"></i> Thông số kích thước chính của vật thể
+                    </h3>
+                    <div id="spec-details-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <!-- Dynamic inserted -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        /* --- DATA DEFINITIONS --- */
+        const MODELS_DATA = {
+            'con-truot': {
+                name: 'CON TRƯỢT',
+                titleDisplay: 'BẢN VẼ A4 NGANG: CON TRƯỢT',
+                specs: [
+                    { label: 'Chiều dài tổng thể', value: '80 mm' },
+                    { label: 'Chiều rộng tổng thể', value: '60 mm' },
+                    { label: 'Chiều cao tổng thể', value: '60 mm' },
+                    { label: 'Bậc trên (R x C)', value: '50 x 30 mm' }
+                ],
+                titleBlock: {
+                    tenVatThe: 'CON TRƯỢT',
+                    nguoiVe: 'Đỗ N.Q.Anh',
+                    ngayVe: '05/10',
+                    kiemTra: '',
+                    truong: 'Trường THCS Nguyễn Hữu Thọ',
+                    lop: '8',
+                    vatLieu: 'Thép',
+                    tiLe: '1:1',
+                    baiSo: '01.01'
+                },
+                steps: [
+                    {
+                        title: '1. Phân tích 3D & Hướng chiếu',
+                        desc: 'Vật thể có dạng bậc thang đối xứng gồm 2 phần: Khối chữ nhật dưới (80x60x30) và khối chữ nhật trên (50x60x30). Hướng chiếu đứng từ trước vào, hướng chiếu bằng từ trên xuống, hướng chiếu cạnh từ trái sang.'
+                    },
+                    {
+                        title: '2. Vẽ Hình Chiếu Đứng',
+                        desc: 'Vẽ ở góc trên bên trái. Khối phía dưới kích thước 80x30, phần bậc thang giữa thu hẹp rộng 50, cao thêm 30. Tổng chiều cao 60mm.'
+                    },
+                    {
+                        title: '3. Vẽ Hình Chiếu Bằng',
+                        desc: 'Đặt phía dưới Hình chiếu đứng. Kích thước tổng thể 80x60. Sử dụng các đường gióng dọc từ hình chiếu đứng xuống để xác định ranh giới bậc rộng 50 mm ở giữa.'
+                    },
+                    {
+                        title: '4. Vẽ Hình Chiếu Cạnh & Hoàn thiện',
+                        desc: 'Đặt bên phải Hình chiếu đứng. Chiều rộng 60, cao 60. Đường nét liền giữa chia thành 2 tầng mỗi tầng cao 30. Ghi đầy đủ kích thước và hoàn thiện Khung tên.'
+                    }
+                ]
+            },
+            'gia-chu-l': {
+                name: 'GIÁ CHỮ L',
+                titleDisplay: 'BẢN VẼ A4 NGANG: GIÁ CHỮ L',
+                specs: [
+                    { label: 'Chiều dài tổng thể', value: '80 mm' },
+                    { label: 'Chiều rộng tổng thể', value: '70 mm' },
+                    { label: 'Chiều cao tổng thể', value: '70 mm' },
+                    { label: 'Phần đứng / Rãnh đế', value: 'Rộng 30 / Rãnh 30x20 mm' }
+                ],
+                titleBlock: {
+                    tenVatThe: 'GIÁ CHỮ L',
+                    nguoiVe: 'Đỗ N.Q.Anh',
+                    ngayVe: '05/10',
+                    kiemTra: '',
+                    truong: 'Trường THCS Nguyễn Hữu Thọ',
+                    lop: '8',
+                    vatLieu: 'Thép',
+                    tiLe: '1:1',
+                    baiSo: '01.01'
+                },
+                steps: [
+                    {
+                        title: '1. Phân tích 3D & Hướng chiếu',
+                        desc: 'Vật thể dạng chữ L. Chân nằm ngang rộng 80, cao 20. Phần đứng nhô cao ở bên phải rộng 30, cao 70. Đế dưới có khuyết rãnh vuông kích thước 30x20 mm.'
+                    },
+                    {
+                        title: '2. Vẽ Hình Chiếu Đứng',
+                        desc: 'Thể hiện rõ mặt bên hình chữ L. Chiều dài 80, cao 70. Cánh dựng đứng ở bên phải rộng 30. Phần chân bên trái cao 20, có 1 nét đứt (Hidden line) cách mép trái 20mm biểu diễn rãnh chìm phía sau.'
+                    },
+                    {
+                        title: '3. Vẽ Hình Chiếu Bằng',
+                        desc: 'Chiếu từ trên xuống. Khung chữ nhật 80x70. Phía bên trái thể hiện rãnh lõm kích thước 30mm cắt vào từ mép. Phía bên phải là bề mặt trụ đứng rộng 30mm.'
+                    },
+                    {
+                        title: '4. Vẽ Hình Chiếu Cạnh & Hoàn thiện',
+                        desc: 'Chiếu từ trái sang. Khung ngoài 70x70. Nét nằm ngang ở độ cao 20 phân cách chân đế. Hai đường dọc thể hiện độ rộng rãnh 30mm ở chính giữa.'
+                    }
+                ]
+            }
+        };
+
+        /* STATE */
+        let currentModelKey = 'con-truot';
+        let currentStep = 0;
+
+        /* THREE.JS GLOBALS */
+        let scene, camera, renderer, controls;
+        let currentMeshGroup = null;
+
+        window.onload = function() {
+            lucide.createIcons();
+            initThreeJS();
+            switchModel('con-truot');
+            
+            window.addEventListener('resize', onWindowResize);
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('threejs-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.set(120, 100, 140);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(100, 150, 80);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const backLight = new THREE.DirectionalLight(0x93c5fd, 0.3);
+            backLight.position.set(-100, -50, -100);
+            scene.add(backLight);
+
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(200, 20, 0x334155, 0x1e293b);
+            gridHelper.position.y = -35;
+            scene.add(gridHelper);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('threejs-container');
+            if (!container) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        function create3DModel(modelKey) {
+            if (currentMeshGroup) {
+                scene.remove(currentMeshGroup);
+            }
+
+            currentMeshGroup = new THREE.Group();
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x3b82f6,
+                roughness: 0.3,
+                metalness: 0.4,
+            });
+
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+
+            if (modelKey === 'con-truot') {
+                // Base block: 80 x 30 x 60 (Width x Height x Depth)
+                const baseGeo = new THREE.BoxGeometry(80, 30, 60);
+                const baseMesh = new THREE.Mesh(baseGeo, material);
+                baseMesh.position.set(0, -15, 0);
+
+                // Top block: 50 x 30 x 60
+                const topGeo = new THREE.BoxGeometry(50, 30, 60);
+                const topMesh = new THREE.Mesh(topGeo, material);
+                topMesh.position.set(0, 15, 0);
+
+                currentMeshGroup.add(baseMesh);
+                currentMeshGroup.add(topMesh);
+
+                // Add wireframe edges for technical clarity
+                [baseGeo, topGeo].forEach((geo, idx) => {
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, edgeMaterial);
+                    line.position.y = idx === 0 ? -15 : 15;
+                    currentMeshGroup.add(line);
+                });
+
+            } else if (modelKey === 'gia-chu-l') {
+                // L-Bracket shape using ExtrudeGeometry
+                const shape = new THREE.Shape();
+                // Front view profile (X: Length, Y: Height)
+                // Center origin around center of object
+                // Total L=80, H=70
+                shape.moveTo(-40, -35); // bottom left
+                shape.lineTo(40, -35);  // bottom right
+                shape.lineTo(40, 35);   // top right
+                shape.lineTo(10, 35);   // inner corner top
+                shape.lineTo(10, -15);  // inner corner bottom
+                shape.lineTo(-40, -15); // step left
+                shape.closePath();
+
+                const extrudeSettings = {
+                    steps: 1,
+                    depth: 70, // Width
+                    bevelEnabled: false
+                };
+
+                const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+                geometry.center(); // Center geometry
+
+                // Cut notch/groove on left side if needed or construct compound shape
+                // For L-bracket with groove:
+                const mainMesh = new THREE.Mesh(geometry, material);
+                currentMeshGroup.add(mainMesh);
+
+                const edges = new THREE.EdgesGeometry(geometry);
+                const line = new THREE.LineSegments(edges, edgeMaterial);
+                currentMeshGroup.add(line);
+            }
+
+            scene.add(currentMeshGroup);
+        }
+
+        function resetCamera(view) {
+            if (!controls) return;
+            switch(view) {
+                case 'front':
+                    camera.position.set(0, 0, 180);
+                    break;
+                case 'top':
+                    camera.position.set(0, 180, 0.1);
+                    break;
+                case 'side':
+                    camera.position.set(180, 0, 0);
+                    break;
+                case 'iso':
+                default:
+                    camera.position.set(120, 100, 140);
+                    break;
+            }
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        function switchModel(key) {
+            currentModelKey = key;
+            currentStep = 0;
+
+            // Update Header Buttons
+            const btnConTruot = document.getElementById('btn-con-truot');
+            const btnGiaChuL = document.getElementById('btn-gia-chu-l');
+
+            if (key === 'con-truot') {
+                btnConTruot.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white shadow-sm";
+                btnGiaChuL.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white transition-all";
+            } else {
+                btnGiaChuL.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white shadow-sm";
+                btnConTruot.className = "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white transition-all";
+            }
+
+            const data = MODELS_DATA[key];
+
+            // Update Title Display
+            document.getElementById('drawing-title-display').textContent = data.titleDisplay;
+
+            // Update Title Block (Khung tên)
+            document.getElementById('tb-ten-vat-the').textContent = data.titleBlock.tenVatThe;
+            document.getElementById('tb-nguoi-ve').textContent = data.titleBlock.nguoiVe;
+            document.getElementById('tb-ngay-ve').textContent = data.titleBlock.ngayVe;
+            document.getElementById('tb-kiem-tra').textContent = data.titleBlock.kiemTra;
+            document.getElementById('tb-truong').textContent = data.titleBlock.truong;
+            document.getElementById('tb-lop').textContent = data.titleBlock.lop;
+            document.getElementById('tb-vat-lieu').textContent = data.titleBlock.vatLieu;
+            document.getElementById('tb-ti-le').textContent = data.titleBlock.tiLe;
+            document.getElementById('tb-bai-so').textContent = data.titleBlock.baiSo;
+
+            // Update Spec Grid
+            const specGrid = document.getElementById('spec-details-grid');
+            specGrid.innerHTML = data.specs.map(s => `
+                <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+                    <div class="text-[10px] text-slate-500 font-medium">${s.label}</div>
+                    <div class="text-sm font-bold text-slate-800 mt-0.5">${s.value}</div>
+                </div>
+            `).join('');
+
+            // Render 3D
+            create3DModel(key);
+            resetCamera('iso');
+
+            // Render SVG Views & Steps
+            updateStepView();
+        }
+
+        function changeStep(delta) {
+            const maxSteps = MODELS_DATA[currentModelKey].steps.length;
+            currentStep += delta;
+            if (currentStep < 0) currentStep = 0;
+            if (currentStep >= maxSteps) currentStep = maxSteps - 1;
+            updateStepView();
+        }
+
+        function updateStepView() {
+            const data = MODELS_DATA[currentModelKey];
+            const steps = data.steps;
+
+            // Update Step Text Card
+            const container = document.getElementById('step-instructions');
+            container.innerHTML = steps.map((st, idx) => {
+                const isActive = idx === currentStep;
+                return `
+                    <div class="p-3 rounded-xl border transition-all ${isActive ? 'bg-blue-50/80 border-blue-300 shadow-sm' : 'bg-slate-50 border-slate-200 opacity-60'}">
+                        <div class="font-bold text-xs ${isActive ? 'text-blue-700' : 'text-slate-700'}">${st.title}</div>
+                        <div class="text-xs text-slate-600 mt-1 leading-relaxed">${st.desc}</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Controls state
+            document.getElementById('step-indicator').textContent = `Bước ${currentStep + 1} / ${steps.length}`;
+            document.getElementById('btn-prev-step').disabled = currentStep === 0;
+            document.getElementById('btn-next-step').disabled = currentStep === steps.length - 1;
+
+            // Render SVG drawing for current step
+            renderSVGDrawing(currentModelKey, currentStep);
+        }
+
+        function renderSVGDrawing(modelKey, step) {
+            const svgLayer = document.getElementById('svg-views-layer');
+            let content = '';
+
+            if (modelKey === 'con-truot') {
+                content = renderConTruotSVG(step);
+            } else {
+                content = renderGiaChuLSVG(step);
+            }
+
+            svgLayer.innerHTML = content;
+        }
+
+        /* --- 1. CON TRƯỢT SVG DRAWING --- */
+        function renderConTruotSVG(step) {
+            let svg = '';
+
+            // Layout coordinates
+            // Front view origin: (80, 80)
+            // Top view origin: (80, 240)
+            // Side view origin: (380, 80)
+
+            const showFront = step >= 1;
+            const showTop = step >= 2;
+            const showSide = step >= 3;
+            const showGuides = step >= 1;
+
+            // Alignment Projection Guides (Đường gióng)
+            if (showGuides) {
+                svg += `
+                    <!-- Projection lines -->
+                    <line x1="80" y1="80" x2="80" y2="380" class="guide-line" />
+                    <line x1="320" y1="80" x2="320" y2="380" class="guide-line" />
+                    <line x1="125" y1="80" x2="125" y2="380" class="guide-line" />
+                    <line x1="275" y1="80" x2="275" y2="380" class="guide-line" />
+
+                    <line x1="80" y1="80" x2="580" y2="80" class="guide-line" />
+                    <line x1="80" y1="170" x2="580" y2="170" class="guide-line" />
+                    <line x1="80" y1="260" x2="580" y2="260" class="guide-line" />
+                `;
+            }
+
+            // --- HÌNH CHIẾU ĐỨNG (Front View) ---
+            if (showFront) {
+                // Outer outline: Stepped shape
+                // Base: 80x30, Top: 50x30 -> Center 50 inside 80: offset (80-50)/2 = 15
+                // SVG Coords: X: 80 -> 320 (scale x3 for clarity: 80mm -> 240px)
+                // Let's use scale 2.5: 80mm -> 200px, 60mm -> 150px, 50mm -> 125px, 30mm -> 75px
+                // Front View: X:100, Y:60. 
+                // Bottom-left: (100, 210), Bottom-right: (300, 210), Step up 75px to Y=135, Step in 37.5px to X=137.5, Up 75px to Y=60...
+                
+                svg += `
+                    <g id="front-view">
+                        <!-- Front View Outline -->
+                        <path d="M 100 210 
+                                 L 300 210 
+                                 L 300 135 
+                                 L 262.5 135 
+                                 L 262.5 60 
+                                 L 137.5 60 
+                                 L 137.5 135 
+                                 L 100 135 Z" class="object-line" />
+                        <line x1="100" y1="135" x2="300" y2="135" class="object-line" />
+
+                        <!-- Dimension Lines for Front View -->
+                        <!-- Height 60 & 30/30 -->
+                        <line x1="70" y1="60" x2="70" y2="210" class="dim-line" />
+                        <line x1="65" y1="60" x2="95" y2="60" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="65" y1="210" x2="95" y2="210" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="58" y="140" fill="#2563eb" font-weight="bold" font-size="12" transform="rotate(-90, 58, 140)">60</text>
+
+                        <line x1="315" y1="60" x2="315" y2="135" class="dim-line" />
+                        <line x1="315" y1="135" x2="315" y2="210" class="dim-line" />
+                        <line x1="305" y1="60" x2="325" y2="60" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="305" y1="135" x2="325" y2="135" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="305" y1="210" x2="325" y2="210" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="328" y="102" fill="#2563eb" font-size="11">30</text>
+                        <text x="328" y="177" fill="#2563eb" font-size="11">30</text>
+
+                        <!-- Label -->
+                        <text x="200" y="45" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU ĐỨNG</text>
+                    </g>
+                `;
+            }
+
+            // --- HÌNH CHIẾU BẰNG (Top View) ---
+            if (showTop) {
+                // Top View lies directly under Front View: X: 100 -> 300, Y: 270 -> 420 (Height 60mm -> 150px)
+                svg += `
+                    <g id="top-view">
+                        <!-- Top View Rect -->
+                        <rect x="100" y="270" width="200" height="150" class="object-line" />
+                        <!-- Inner step edges corresponding to width 50 (X: 137.5 to 262.5) -->
+                        <line x1="137.5" y1="270" x2="137.5" y2="420" class="object-line" />
+                        <line x1="262.5" y1="270" x2="262.5" y2="420" class="object-line" />
+
+                        <!-- Dimension Lines -->
+                        <!-- Length 80 -->
+                        <line x1="100" y1="245" x2="300" y2="245" class="dim-line" />
+                        <line x1="100" y1="238" x2="100" y2="265" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="300" y1="238" x2="300" y2="265" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="200" y="240" text-anchor="middle" fill="#2563eb" font-weight="bold" font-size="12">80</text>
+
+                        <!-- Inner Step Width 50 -->
+                        <line x1="137.5" y1="290" x2="262.5" y2="290" class="dim-line" />
+                        <text x="200" y="285" text-anchor="middle" fill="#2563eb" font-weight="bold" font-size="11">50</text>
+
+                        <!-- Width 60 -->
+                        <line x1="70" y1="270" x2="70" y2="420" class="dim-line" />
+                        <line x1="65" y1="270" x2="95" y2="270" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="65" y1="420" x2="95" y2="420" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="58" y="350" fill="#2563eb" font-weight="bold" font-size="12" transform="rotate(-90, 58, 350)">60</text>
+
+                        <!-- Label -->
+                        <text x="200" y="445" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU BẰNG</text>
+                    </g>
+                `;
+            }
+
+            // --- HÌNH CHIẾU CẠNH (Side View) ---
+            if (showSide) {
+                // Side View lies to the right of Front View: X: 420 -> 570 (Width 60mm -> 150px), Y: 60 -> 210 (Height 60mm -> 150px)
+                svg += `
+                    <g id="side-view">
+                        <!-- Side View Outer Rectangle -->
+                        <rect x="420" y="60" width="150" height="150" class="object-line" />
+                        <!-- Middle Step Dividing Line -->
+                        <line x1="420" y1="135" x2="570" y2="135" class="object-line" />
+
+                        <!-- Label -->
+                        <text x="495" y="45" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU CẠNH</text>
+                    </g>
+                `;
+            }
+
+            return svg;
+        }
+
+        /* --- 2. GIÁ CHỮ L SVG DRAWING --- */
+        function renderGiaChuLSVG(step) {
+            let svg = '';
+
+            const showFront = step >= 1;
+            const showTop = step >= 2;
+            const showSide = step >= 3;
+            const showGuides = step >= 1;
+
+            // Scale factor 2.2: 
+            // Length 80 -> 176px, Height 70 -> 154px, Width 70 -> 154px
+            // Vertical leg 30 -> 66px, Base height 20 -> 44px
+            // Hidden line at 20 -> 44px from left
+
+            if (showGuides) {
+                svg += `
+                    <!-- Alignment Guide Lines -->
+                    <line x1="100" y1="60" x2="100" y2="420" class="guide-line" />
+                    <line x1="276" y1="60" x2="276" y2="420" class="guide-line" />
+                    <line x1="210" y1="60" x2="210" y2="420" class="guide-line" />
+
+                    <line x1="100" y1="60" x2="574" y2="60" class="guide-line" />
+                    <line x1="100" y1="170" x2="574" y2="170" class="guide-line" />
+                    <line x1="100" y1="214" x2="574" y2="214" class="guide-line" />
+                `;
+            }
+
+            // --- HÌNH CHIẾU ĐỨNG (L-Shape) ---
+            if (showFront) {
+                // Origin (100, 60), Height 154 (to Y=214), Length 176 (to X=276)
+                // L shape: (100,170) -> (210,170) -> (210,60) -> (276,60) -> (276,214) -> (100,214)
+                svg += `
+                    <g id="front-view-l">
+                        <!-- L-Bracket Outer Contour -->
+                        <path d="M 100 170 
+                                 L 210 170 
+                                 L 210 60 
+                                 L 276 60 
+                                 L 276 214 
+                                 L 100 214 Z" class="object-line" />
+
+                        <!-- Hidden Line (Nét đứt) for back groove at X = 100 + 44 = 144 -->
+                        <line x1="144" y1="170" x2="144" y2="214" class="hidden-line" />
+
+                        <!-- Dimensions -->
+                        <!-- Total Height 70 -->
+                        <line x1="70" y1="60" x2="70" y2="214" class="dim-line" />
+                        <line x1="65" y1="60" x2="95" y2="60" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="65" y1="214" x2="95" y2="214" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="58" y="140" fill="#2563eb" font-weight="bold" font-size="12" transform="rotate(-90, 58, 140)">70</text>
+
+                        <!-- Base Height 20 -->
+                        <line x1="290" y1="170" x2="290" y2="214" class="dim-line" />
+                        <line x1="280" y1="170" x2="300" y2="170" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="280" y1="214" x2="300" y2="214" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="303" y="197" fill="#2563eb" font-size="11">20</text>
+
+                        <!-- Length 80 -->
+                        <line x1="100" y1="40" x2="276" y2="40" class="dim-line" />
+                        <line x1="100" y1="33" x2="100" y2="55" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="276" y1="33" x2="276" y2="55" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="188" y="35" text-anchor="middle" fill="#2563eb" font-weight="bold" font-size="12">80</text>
+
+                        <!-- Step 20 & 30 dims -->
+                        <line x1="100" y1="230" x2="144" y2="230" class="dim-line" />
+                        <text x="122" y="225" text-anchor="middle" fill="#2563eb" font-size="10">20</text>
+
+                        <line x1="210" y1="40" x2="276" y2="40" stroke="#2563eb" stroke-width="1.2" />
+                        <text x="243" y="32" text-anchor="middle" fill="#2563eb" font-size="11">30</text>
+
+                        <!-- Title -->
+                        <text x="188" y="15" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU ĐỨNG</text>
+                    </g>
+                `;
+            }
+
+            // --- HÌNH CHIẾU BẰNG (Top View) ---
+            if (showTop) {
+                // X: 100 -> 276, Y: 260 -> 414 (Width 70 -> 154px)
+                // Left side has cutout notch: width 30 (66px) in middle Y: 304 to 370, depth 20 (44px) X: 100 to 144
+                svg += `
+                    <g id="top-view-l">
+                        <!-- Top View Profile with Slot/Cutout on left -->
+                        <path d="M 100 260 
+                                 L 276 260 
+                                 L 276 414 
+                                 L 100 414 
+                                 L 100 370 
+                                 L 144 370 
+                                 L 144 304 
+                                 L 100 304 Z" class="object-line" />
+
+                        <!-- Vertical line for upright wall at X=210 -->
+                        <line x1="210" y1="260" x2="210" y2="414" class="object-line" />
+
+                        <!-- Dimensions -->
+                        <!-- Notch Width 30 -->
+                        <line x1="80" y1="304" x2="80" y2="370" class="dim-line" />
+                        <line x1="75" y1="304" x2="105" y2="304" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="75" y1="370" x2="105" y2="370" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="70" y="341" fill="#2563eb" font-size="11" transform="rotate(-90, 70, 341)">30</text>
+
+                        <!-- Total Width 70 -->
+                        <line x1="290" y1="260" x2="290" y2="414" class="dim-line" />
+                        <line x1="280" y1="260" x2="300" y2="260" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="280" y1="414" x2="300" y2="414" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="305" y="340" fill="#2563eb" font-weight="bold" font-size="12">70</text>
+
+                        <!-- Title -->
+                        <text x="188" y="438" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU BẰNG</text>
+                    </g>
+                `;
+            }
+
+            // --- HÌNH CHIẾU CẠNH (Side View) ---
+            if (showSide) {
+                // X: 420 -> 574 (Width 70 -> 154px), Y: 60 -> 214 (Height 70 -> 154px)
+                // Horizontal line at Y=170 (Base height 20)
+                // Middle groove vertical lines: Width 30 (66px) -> X: 464 to 530
+                svg += `
+                    <g id="side-view-l">
+                        <!-- Side View Outer Frame -->
+                        <rect x="420" y="60" width="154" height="154" class="object-line" />
+
+                        <!-- Horizontal dividing line for base -->
+                        <line x1="420" y1="170" x2="574" y2="170" class="object-line" />
+
+                        <!-- Vertical groove lines in base -->
+                        <line x1="464" y1="170" x2="464" y2="214" class="object-line" />
+                        <line x1="530" y1="170" x2="530" y2="214" class="object-line" />
+
+                        <!-- Groove Width Dimension 30 -->
+                        <line x1="464" y1="230" x2="530" y2="230" class="dim-line" />
+                        <line x1="464" y1="218" x2="464" y2="235" stroke="#2563eb" stroke-width="0.8" />
+                        <line x1="530" y1="218" x2="530" y2="235" stroke="#2563eb" stroke-width="0.8" />
+                        <text x="497" y="226" text-anchor="middle" fill="#2563eb" font-size="11">30</text>
+
+                        <!-- Title -->
+                        <text x="497" y="40" text-anchor="middle" font-weight="bold" fill="#0f172a" font-size="13">HÌNH CHIẾU CẠNH</text>
+                    </g>
+                `;
+            }
+
+            return svg;
+        }
+
+    </script>
+</body>
+</html>
